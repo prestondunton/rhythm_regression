@@ -1,5 +1,5 @@
 import unittest
-import unit_conversion as uc
+import rhythm_regression.unit_conversion as uc
 
 class TestUnitConversion(unittest.TestCase):
 
