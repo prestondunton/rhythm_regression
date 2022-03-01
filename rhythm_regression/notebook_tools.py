@@ -55,7 +55,8 @@ def plot_signal(signal, samples=None, sampling_rate=22050, time_range=None, unit
         plt.figure(figsize=(20,10))
         axs = plt.gca()
 
-    title += f' (Sampled at {sampling_rate} Hz)'
+    if sampling_rate != 22050:
+        title += f' (Sampled at {sampling_rate} Hz)'
     plt.title(title, fontsize=24)
     plt.xticks(fontsize=14)
     plt.xlabel(x_axis_label, fontsize=18)

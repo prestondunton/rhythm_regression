@@ -1,5 +1,9 @@
 # Rhythm Regression
 
+## Notes
+
+I believe that `librosa.load()`  takes so long to load files because it is using `ffmpeg` to convert my `.m4a` files into something readable by `librosa`.
+
 ## Virtual Environment
 
 This project's virtual environment is managed using `pipenv`, which is a combination of `pip` and `virtualenv`.
