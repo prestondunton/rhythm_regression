@@ -1,11 +1,12 @@
 from rhythm_regression.unit_conversion import MILLISECONDS_PER_SECOND
 from rhythm_regression.audio_processing import amplitude_envolope
 
+import librosa
 import numpy as np
 import matplotlib.pyplot as plt
 
 
-def plot_signal(signal, samples=None, sampling_rate=22050, time_range=None, units='s', title='', axs=None):
+def plot_signal(signal, samples=None, sampling_rate=22050, time_range=None, units='s', title='', axs=None, **kwargs):
     """
     Plots an signal using matplotlib and allows for time slicing and 
     different units
@@ -59,18 +60,22 @@ def plot_signal(signal, samples=None, sampling_rate=22050, time_range=None, unit
     plt.xticks(fontsize=14)
     plt.xlabel(x_axis_label, fontsize=18)
 
-    axs.plot(x_data[in_time_range], signal[in_time_range])
+    if 'fmt' in kwargs.keys():
+        format = kwargs.pop('fmt')
+        axs.plot(x_data[in_time_range], signal[in_time_range], format, **kwargs)
+    else:
+        axs.plot(x_data[in_time_range], signal[in_time_range], **kwargs)
     
     return axs
 
 
-def plot_amplitude_envelope(audio, original_signal=True, frame_size=1024, hop_length=512, **kwargs):
+def plot_amplitude_envelope(signal, original_signal=True, frame_size=1024, hop_length=512, axs=None, **kwargs):
     """
     Plots the amplitude envelope of a signal, which is a sliding window maximum.  
     See https://www.youtube.com/watch?v=rlypsap6Wow&list=PL-wATfeyAMNqIee7cH3q1bh4QJFAaeNv0&index=9
 
     Arguments
-    audio ():
+    signal (np.ndarray): The original signal to calculate the amplitude envelope on
     original_signal (bool): Whether or not to plot the original signal as well as the amplitude envelope
     frame_size (int): The frame (window) size for the amplitude envelope
     hop_length (int): The hop length (stride) for sliding the frame for the amplitude envelope
@@ -80,12 +85,39 @@ def plot_amplitude_envelope(audio, original_signal=True, frame_size=1024, hop_le
     axs (matplotlib.axes.Axes): The axes that the signals were plotted on
     """
 
-    samples, ae = amplitude_envolope(audio, frame_size, hop_length)
+    samples, ae = amplitude_envolope(signal, frame_size, hop_length)
     
     if original_signal:
-        axs = plot_signal(audio, **kwargs)
-    else:
-        axs = None
+        axs = plot_signal(signal, axs=axs, **kwargs)
+
     axs = plot_signal(ae, samples, axs=axs, **kwargs)
+
+    return axs
+
+
+def plot_rms_energy(signal, original_signal=True, frame_size=1024, hop_length=512, axs=None, **kwargs):
+    """
+    Plots the Root Mean Square Energy of a signal, which is a sliding window root mean square.  
+    See https://www.youtube.com/watch?v=EycaSbIRx-0&list=PL-wATfeyAMNqIee7cH3q1bh4QJFAaeNv0&index=9
+
+    Arguments
+    signal (np.ndarray): The original signal to calculate the amplitude envelope on
+    original_signal (bool): Whether or not to plot the original signal as well as the amplitude envelope
+    frame_size (int): The frame (window) size for the amplitude envelope
+    hop_length (int): The hop length (stride) for sliding the frame for the amplitude envelope
+    **kwargs: Arguments for plot_signal()
+
+    Returns
+    axs (matplotlib.axes.Axes): The axes that the signals were plotted on
+    """
+
+    rmse = librosa.feature.rms(signal, frame_length=frame_size, hop_length=hop_length).flatten()
+    frames = range(len(rmse))
+    samples = librosa.frames_to_samples(frames, hop_length=hop_length)
+    
+    if original_signal:
+        axs = plot_signal(signal, axs=axs, **kwargs)
+
+    axs = plot_signal(rmse, samples, axs=axs, **kwargs)
 
     return axs

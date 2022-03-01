@@ -1,5 +1,8 @@
-/data
+.vscode
 /.idea
+
 /.ipynb_checkpoints
 __pycache__/
+
+/data
 /misc
