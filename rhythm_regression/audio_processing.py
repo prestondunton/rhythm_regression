@@ -23,3 +23,49 @@ def amplitude_envolope(signal, frame_size=1024, hop_length=512):
     samples = librosa.frames_to_samples(frames, hop_length=hop_length)
 
     return samples, ae
+
+
+def rms_energy_transients(signal, sampling_rate=22050, frame_length=1024, hop_length=512, amplitude_threshold=0.01):
+    """
+    Returns the times of transients in the signal based on
+    local maxima of the RMSEnergy of the signal.
+
+    Arguments
+    signal (list-like): The signal to get transients of
+    sampling_rate (int): The sampling rate to use for conversion to time
+    frame_length (int): The number of samples per frame
+    hop_length (int): The number of samples to shift frames by
+    amplitude_theshold (int): The lowest rms_energy that counts as a transient
+
+    Returns
+    rmse_transients (np.ndarray): A numpy array of the times (in seconds) of transients
+    """
+
+    rmse = librosa.feature.rms(signal, frame_length=frame_length, hop_length=hop_length).flatten()
+    rmse_transient_frames = arg_where_local_max(rmse)
+
+    # filter out transients that are below amplitude_threhsold
+    rmse_transients_frames = np.array([frame for frame in rmse_transient_frames if rmse[frame] > amplitude_threshold])
+
+    rmse_transients = librosa.frames_to_time(rmse_transients_frames, sr=sampling_rate, hop_length=hop_length)
+
+    return rmse_transients
+
+
+def arg_where_local_max(signal):
+    """
+    Returns the indices of local maxima in the signal
+
+    Arguments
+    signal (list-like): The signal to process
+
+    Returns 
+    (np.ndarray): The indices of local maxima in the signal
+    """
+
+    indices = []
+    for i in range(1, len(signal)-1):
+        if (signal[i-1] <= signal[i]) and (signal[i+1] < signal[i]):
+            indices.append(i)
+
+    return np.array(indices)
