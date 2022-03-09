@@ -1,5 +1,5 @@
 from rhythm_regression.unit_conversion import MILLISECONDS_PER_SECOND
-from rhythm_regression.audio_processing import amplitude_envolope
+from rhythm_regression.audio_processing import amplitude_envolope, rms_energy_transients
 
 import librosa
 import numpy as np
@@ -122,3 +122,19 @@ def plot_rms_energy(signal, original_signal=True, frame_size=1024, hop_length=51
     axs = plot_signal(rmse, samples, axs=axs, **kwargs)
 
     return axs
+
+
+def plot_rmse_transients(signal, time_range, frame_size, hop_length, amplitude_threshold=None, title='', axs=None):
+
+    axs = plot_signal(signal, time_range=time_range, axs=axs)
+
+    axs = plot_rms_energy(signal, frame_size=frame_size, hop_length=hop_length, time_range=time_range, 
+                            fmt='-', original_signal=False, axs=axs, title=title)
+
+    transients = rms_energy_transients(signal, frame_length=frame_size, hop_length=hop_length, 
+                                        amplitude_threshold=amplitude_threshold)
+
+    for transient in transients:
+        if time_range[0] <= transient <= time_range[1]:
+            axs.axvline(transient, color='black')
+
