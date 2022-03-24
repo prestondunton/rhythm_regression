@@ -1,4 +1,4 @@
-from rhythm_regression.unit_conversion import MILLISECONDS_PER_SECOND
+from rhythm_regression.unit_conversion import MILLISECONDS_PER_SECOND, SECONDS_PER_MINUTE
 from rhythm_regression.audio_processing import amplitude_envolope, rms_energy_transients
 
 import librosa
@@ -125,6 +125,21 @@ def plot_rms_energy(signal, original_signal=True, frame_size=1024, hop_length=51
 
 
 def plot_rmse_transients(signal, time_range, frame_size, hop_length, amplitude_threshold=None, title='', axs=None):
+    """
+    Plots the transients detected from local maxima of the RMSEnergy signal
+
+    Arguments
+    signal (np.ndarray): The signal to calculate transients on and plot
+    time_range (tuple of length 2): The time range to slice the signal with
+    frame_size (int): The frame (window) size for the rmse signal calculation
+    hop_length (int): The hop length (stride) for sliding the frame for the rmse signal calculation
+    amplitude_threshold (float): The amplitude threshold for the rmse signal calculation
+    title (str): The title for the plot
+    axs (matplotlib.axes.Axes): Axes to plot the signals and transients on
+
+    Returns
+    axs (matplotlib.axes.Axes): The axes that the signals and transients are drawn on
+    """
 
     axs = plot_signal(signal, time_range=time_range, axs=axs)
 
@@ -138,3 +153,92 @@ def plot_rmse_transients(signal, time_range, frame_size, hop_length, amplitude_t
         if time_range[0] <= transient <= time_range[1]:
             axs.axvline(transient, color='black')
 
+    return axs
+
+
+def plot_midi_vector(x, bpm, time_range=None, draw_beats=True, x_label=None, y_level=0, 
+                    subdivisions_per_beat=1, units='beats', axs=None, figsize=(12.8, 1), title='', **kwargs):
+    """
+    Plots the MIDI vector as a series of points along a time axis.
+
+    Arguments
+    x (np.array): The times of the MIDI notes in seconds.
+    bpm (float): The tempo of the MIDI used for ploting beats, subdivisions, and x ticks.
+    time_range (tuple of length 2): A tuple specifying start and end times to plot in the MIDI vector.  Uses units specified by the units argument.
+    draw_beats (bool): Whether or not to draw the beats and subdivisions as vertical lines.
+    x_label (str): The string to label the x axis with.  Defaults to 'Time (units)'.
+    y_level (float): The height to plot the points at.  Must be in range [-1,1].
+    subdivision_per_beat (float): The number of subdivisions per beat to plot if draw_beats is True.
+    units (['s', 'ms', 'beats']): The units to plot on the x axis and to interpret time_range with.
+    axs (matplotlib.axes.Axes): The axes to draw the MIDI vector on.
+    figsize (tuple of length 2): The figure size.
+    title (str): The title of the plot.
+    **kwargs: Keyword arguments to pass to axs.plot().
+
+    Returns 
+    axs (matplotlib.axes.Axes): The axes that the MIDI vector was drawn on
+    """
+
+    if axs is None:
+        plt.figure(figsize=figsize)
+        axs = plt.gca()
+
+    if x_label is None:
+        x_label = f'Time ({units})'
+
+    if y_level < -1 or y_level > 1:
+        raise ValueError('y_level must be in the range [-1,1]')
+
+    seconds_per_beat = SECONDS_PER_MINUTE / bpm
+    if units == 's':
+        beat_lines = np.arange(0, max(x), seconds_per_beat)
+        subdivision_lines = np.arange(0, max(x), seconds_per_beat / subdivisions_per_beat)
+    elif units == 'ms':
+        x = x * MILLISECONDS_PER_SECOND
+        beat_lines = np.arange(0, max(x), seconds_per_beat) * MILLISECONDS_PER_SECOND
+        subdivision_lines = np.arange(0, max(x), seconds_per_beat / subdivisions_per_beat) * MILLISECONDS_PER_SECOND
+    elif units == 'beats':
+        x = x * bpm / SECONDS_PER_MINUTE
+        beat_lines = np.arange(0, max(x) * bpm / SECONDS_PER_MINUTE)
+        subdivision_lines = np.arange(0, max(x) * bpm / SECONDS_PER_MINUTE, 1 / subdivisions_per_beat)
+    else:
+        raise ValueError(f'{units} is not a valid unit.  Use one of [\'s\', \'ms\', \'beats\'].')
+
+    if time_range is None:
+        time_range = (min(x), max(x))
+    in_time_range = (time_range[0] <= x) & (x <= time_range[1])
+    
+    axs.plot(x[in_time_range], y_level * np.ones_like(x[in_time_range]), 'o', **kwargs)
+    plt.xlabel(x_label, fontsize=16)
+    plt.yticks([])
+    plt.ylim([-1,1])
+    plt.title(title, fontsize=18)
+
+    if draw_beats:
+        axs = draw_beat_lines(axs, beat_lines, subdivision_lines, time_range)
+    
+    return axs
+
+def draw_beat_lines(axs, beat_lines, subdivision_lines, time_range):
+    """
+    Draws the vertical lines of beats and their subdivisions on the provided axes.
+
+    Arguments
+    axs (matplotlib.axes.Axes): Axes to plot the lines on
+    beat_lines (list-like): The x coordinates of the beat lines
+    subdivision_lines (list-like): The x coordinates of the subdivision lines
+    time_range (tuple of length 2): A tuple specifying start and end times to plot in the signal.
+
+    Returns
+    axs (matplotlib.axes.Axes): The axes that the lines were drawn on
+    """
+
+    for line in beat_lines:
+        if time_range[0] <= line <= time_range[1]:
+            axs.axvline(line, color='black')
+
+    for line in subdivision_lines:
+        if time_range[0] <= line <= time_range[1]:
+            axs.axvline(line, color='black', lw=0.5)
+
+    return axs
