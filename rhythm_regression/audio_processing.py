@@ -1,8 +1,13 @@
 import librosa
 import numpy as np
 
+SAMPLING_RATE = 22050
+HOP_LENGTH = 350
+FRAME_SIZE = 700
+AMPLITUDE_THRESHOLD = 0.02
 
-def amplitude_envolope(signal, frame_size=1024, hop_length=512):
+
+def amplitude_envolope(signal, frame_size=FRAME_SIZE, hop_length=HOP_LENGTH):
     """
     Calculates the amplitude envelope of a signal.
     See https://www.youtube.com/watch?v=SRrQ_v-OOSg&list=PL-wATfeyAMNqIee7cH3q1bh4QJFAaeNv0&index=8
@@ -25,7 +30,8 @@ def amplitude_envolope(signal, frame_size=1024, hop_length=512):
     return samples, ae
 
 
-def rms_energy_transients(signal, sampling_rate=22050, frame_length=1024, hop_length=512, amplitude_threshold=0.01):
+def rms_energy_transients(signal, sampling_rate=SAMPLING_RATE, frame_size=FRAME_SIZE, 
+                            hop_length=HOP_LENGTH, amplitude_threshold=AMPLITUDE_THRESHOLD):
     """
     Returns the times of transients in the signal based on
     local maxima of the RMSEnergy of the signal.
@@ -33,7 +39,7 @@ def rms_energy_transients(signal, sampling_rate=22050, frame_length=1024, hop_le
     Arguments
     signal (list-like): The signal to get transients of
     sampling_rate (int): The sampling rate to use for conversion to time
-    frame_length (int): The number of samples per frame
+    frame_size (int): The number of samples per frame
     hop_length (int): The number of samples to shift frames by
     amplitude_theshold (int): The lowest rms_energy that counts as a transient
 
@@ -41,7 +47,7 @@ def rms_energy_transients(signal, sampling_rate=22050, frame_length=1024, hop_le
     rmse_transients (np.ndarray): A numpy array of the times (in seconds) of transients
     """
 
-    rmse = librosa.feature.rms(signal, frame_length=frame_length, hop_length=hop_length).flatten()
+    rmse = librosa.feature.rms(signal, frame_size=frame_size, hop_length=hop_length).flatten()
     rmse_transient_frames = arg_where_local_max(rmse)
 
     # filter out transients that are below amplitude_threhsold

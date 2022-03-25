@@ -9,6 +9,7 @@ matplotlib = "*"
 streamlit = "*"
 mido = "*"
 tqdm = "*"
+scikit-learn = "*"
 
 [dev-packages]
 
