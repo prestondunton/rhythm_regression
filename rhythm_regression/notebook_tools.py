@@ -1,12 +1,14 @@
 from rhythm_regression.unit_conversion import MILLISECONDS_PER_SECOND, SECONDS_PER_MINUTE
 from rhythm_regression.audio_processing import amplitude_envolope, rms_energy_transients
 
+from rhythm_regression.audio_processing import SAMPLING_RATE, FRAME_SIZE, HOP_LENGTH, AMPLITUDE_THRESHOLD
+
 import librosa
 import numpy as np
 import matplotlib.pyplot as plt
 
 
-def plot_signal(signal, samples=None, sampling_rate=22050, time_range=None, units='s', title='', axs=None, **kwargs):
+def plot_signal(signal, samples=None, sampling_rate=SAMPLING_RATE, time_range=None, units='s', title='', axs=None, **kwargs):
     """
     Plots an signal using matplotlib and allows for time slicing and 
     different units
@@ -70,7 +72,7 @@ def plot_signal(signal, samples=None, sampling_rate=22050, time_range=None, unit
     return axs
 
 
-def plot_amplitude_envelope(signal, original_signal=True, frame_size=1024, hop_length=512, axs=None, **kwargs):
+def plot_amplitude_envelope(signal, original_signal=True, frame_size=FRAME_SIZE, hop_length=HOP_LENGTH, axs=None, **kwargs):
     """
     Plots the amplitude envelope of a signal, which is a sliding window maximum.  
     See https://www.youtube.com/watch?v=rlypsap6Wow&list=PL-wATfeyAMNqIee7cH3q1bh4QJFAaeNv0&index=9
@@ -96,7 +98,7 @@ def plot_amplitude_envelope(signal, original_signal=True, frame_size=1024, hop_l
     return axs
 
 
-def plot_rms_energy(signal, original_signal=True, frame_size=1024, hop_length=512, axs=None, **kwargs):
+def plot_rms_energy(signal, original_signal=True, frame_size=FRAME_SIZE, hop_length=HOP_LENGTH, axs=None, **kwargs):
     """
     Plots the Root Mean Square Energy of a signal, which is a sliding window root mean square.  
     See https://www.youtube.com/watch?v=EycaSbIRx-0&list=PL-wATfeyAMNqIee7cH3q1bh4QJFAaeNv0&index=9
@@ -124,7 +126,8 @@ def plot_rms_energy(signal, original_signal=True, frame_size=1024, hop_length=51
     return axs
 
 
-def plot_rmse_transients(signal, time_range, frame_size, hop_length, amplitude_threshold=None, title='', axs=None):
+def plot_rmse_transients(signal, time_range=None, frame_size=FRAME_SIZE, hop_length=HOP_LENGTH, 
+                         amplitude_threshold=AMPLITUDE_THRESHOLD, title='', axs=None):
     """
     Plots the transients detected from local maxima of the RMSEnergy signal
 
@@ -146,9 +149,11 @@ def plot_rmse_transients(signal, time_range, frame_size, hop_length, amplitude_t
     axs = plot_rms_energy(signal, frame_size=frame_size, hop_length=hop_length, time_range=time_range, 
                             fmt='-', original_signal=False, axs=axs, title=title)
 
-    transients = rms_energy_transients(signal, frame_length=frame_size, hop_length=hop_length, 
+    transients = rms_energy_transients(signal, frame_size=frame_size, hop_length=hop_length, 
                                         amplitude_threshold=amplitude_threshold)
 
+    if time_range is None:
+        time_range = (transients.min(), transients.max())
     for transient in transients:
         if time_range[0] <= transient <= time_range[1]:
             axs.axvline(transient, color='black')

@@ -47,7 +47,7 @@ def rms_energy_transients(signal, sampling_rate=SAMPLING_RATE, frame_size=FRAME_
     rmse_transients (np.ndarray): A numpy array of the times (in seconds) of transients
     """
 
-    rmse = librosa.feature.rms(signal, frame_size=frame_size, hop_length=hop_length).flatten()
+    rmse = librosa.feature.rms(signal, frame_length=frame_size, hop_length=hop_length).flatten()
     rmse_transient_frames = arg_where_local_max(rmse)
 
     # filter out transients that are below amplitude_threhsold
