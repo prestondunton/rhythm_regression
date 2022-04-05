@@ -161,7 +161,7 @@ def plot_rmse_transients(signal, time_range=None, frame_size=FRAME_SIZE, hop_len
     return axs
 
 
-def plot_midi_vector(x, bpm, time_range=None, draw_beats=True, x_label=None, y_level=0, 
+def plot_midi_vector(x, bpm, time_range=None, draw_beats=True, x_label=None, y_level=0.5, 
                     subdivisions_per_beat=1, units='beats', axs=None, figsize=(12.8, 1), title='', **kwargs):
     """
     Plots the MIDI vector as a series of points along a time axis.
@@ -172,7 +172,7 @@ def plot_midi_vector(x, bpm, time_range=None, draw_beats=True, x_label=None, y_l
     time_range (tuple of length 2): A tuple specifying start and end times to plot in the MIDI vector.  Uses units specified by the units argument.
     draw_beats (bool): Whether or not to draw the beats and subdivisions as vertical lines.
     x_label (str): The string to label the x axis with.  Defaults to 'Time (units)'.
-    y_level (float): The height to plot the points at.  Must be in range [-1,1].
+    y_level (float): The height to plot the points at.  Must be in range [0,1].
     subdivision_per_beat (float): The number of subdivisions per beat to plot if draw_beats is True.
     units (['s', 'ms', 'beats']): The units to plot on the x axis and to interpret time_range with.
     axs (matplotlib.axes.Axes): The axes to draw the MIDI vector on.
@@ -191,13 +191,13 @@ def plot_midi_vector(x, bpm, time_range=None, draw_beats=True, x_label=None, y_l
     if x_label is None:
         x_label = f'Time ({units})'
 
-    if y_level < -1 or y_level > 1:
-        raise ValueError('y_level must be in the range [-1,1]')
+    if y_level < 0 or y_level > 1:
+        raise ValueError('y_level must be in the range [0,1]')
 
     seconds_per_beat = SECONDS_PER_MINUTE / bpm
     if units == 's':
-        beat_lines = np.arange(0, max(x), seconds_per_beat)
-        subdivision_lines = np.arange(0, max(x), seconds_per_beat / subdivisions_per_beat)
+        beat_lines = np.arange(0, np.nanmax(x), seconds_per_beat)
+        subdivision_lines = np.arange(0, np.nanmax(x), seconds_per_beat / subdivisions_per_beat)
     elif units == 'ms':
         x = x * MILLISECONDS_PER_SECOND
         beat_lines = np.arange(0, max(x), seconds_per_beat) * MILLISECONDS_PER_SECOND
@@ -216,7 +216,7 @@ def plot_midi_vector(x, bpm, time_range=None, draw_beats=True, x_label=None, y_l
     axs.plot(x[in_time_range], y_level * np.ones_like(x[in_time_range]), 'o', **kwargs)
     plt.xlabel(x_label, fontsize=16)
     plt.yticks([])
-    plt.ylim([-1,1])
+    plt.ylim([0,1])
     plt.title(title, fontsize=18)
 
     if draw_beats:
