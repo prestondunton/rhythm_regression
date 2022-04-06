@@ -12,10 +12,11 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from rhythm_regression.unit_conversion import MILLISECONDS_PER_SECOND, SECONDS_PER_MINUTE
+from rhythm_regression.unit_conversion import MILLISECONDS_PER_SECOND
 
 TEMP_DIRECTORY = '.temp'
-AUDIO_COLORS = ['#215097', '#F9C80E', '#ED6A5A', '#7297AC', '#1cbd5c']
+#AUDIO_COLORS = ['red', 'blue', 'green', 'orange', 'magenta', 'black']
+AUDIO_COLORS = ['#D74E09', '#3F88C5', '#F2BB05', '#0B6E4F', '#63CCCA', 'black']
 MIDI_COLOR = 'black'
 METRIC_ROUND_PLACES = 2
 
@@ -155,18 +156,18 @@ def compute_tempo_vectors():
 
 def compute_summary_stats():
 
-    average_errors = [np.nanmean(np.abs(error_vector)) for error_vector in st.session_state['error_vectors']]
+    average_errors = [np.nanmean(np.abs(error_vector)) * MILLISECONDS_PER_SECOND for error_vector in st.session_state['error_vectors']]
 
     total_errors = [np.nansum(np.abs(error_vector)) for error_vector in st.session_state['error_vectors']]
 
-    error_deviations = [np.nanstd(error_vector) for error_vector in st.session_state['error_vectors']]
+    error_deviations = [np.nanstd(error_vector)  * MILLISECONDS_PER_SECOND for error_vector in st.session_state['error_vectors']]
 
     average_tempos = [np.nanmean(tempo_vector) for tempo_vector in st.session_state['tempo_vectors']]
 
     tempo_deviations = [np.nanstd(tempo_vector) for tempo_vector in st.session_state['tempo_vectors']]
 
-    summary_stats_df = pd.DataFrame({'Average Error (s)': average_errors, 'Total Error (s)': total_errors,
-                                     'Error Deviation (s)': error_deviations, 'Average Tempo (bpm)': average_tempos,
+    summary_stats_df = pd.DataFrame({'Average Error (ms)': average_errors, 'Total Error (s)': total_errors,
+                                     'Error Deviation (ms)': error_deviations, 'Average Tempo (bpm)': average_tempos,
                                      'Tempo Deviation (bpm)': tempo_deviations}, index=st.session_state['audio_names'])
 
     st.session_state['summary_stats_df'] = summary_stats_df
@@ -270,16 +271,16 @@ def render_error_metrics():
 
     most_recent_sample = st.session_state['audio_names'][-1]
 
-    average_error = round(stats_df.loc[most_recent_sample]['Average Error (s)'], METRIC_ROUND_PLACES)
+    average_error = round(stats_df.loc[most_recent_sample]['Average Error (ms)'], METRIC_ROUND_PLACES)
     total_error = round(stats_df.loc[most_recent_sample]['Total Error (s)'], METRIC_ROUND_PLACES)
-    error_deviation = round(stats_df.loc[most_recent_sample]['Error Deviation (s)'], METRIC_ROUND_PLACES)
+    error_deviation = round(stats_df.loc[most_recent_sample]['Error Deviation (ms)'], METRIC_ROUND_PLACES)
 
     if st.session_state['num_audios'] > 1:
         sample_before_that = st.session_state['audio_names'][-2]
 
-        delta_average_error = round(average_error - stats_df.loc[sample_before_that]['Average Error (s)'], METRIC_ROUND_PLACES)
+        delta_average_error = round(average_error - stats_df.loc[sample_before_that]['Average Error (ms)'], METRIC_ROUND_PLACES)
         delta_total_error = round(total_error - stats_df.loc[sample_before_that]['Total Error (s)'], METRIC_ROUND_PLACES)
-        delta_error_deviation = round(error_deviation - stats_df.loc[sample_before_that]['Error Deviation (s)'], METRIC_ROUND_PLACES)
+        delta_error_deviation = round(error_deviation - stats_df.loc[sample_before_that]['Error Deviation (ms)'], METRIC_ROUND_PLACES)
         
     else:
         delta_average_error = None
@@ -287,9 +288,9 @@ def render_error_metrics():
         delta_error_deviation = None
     
     st.subheader(most_recent_sample)
-    st.metric('Average Error', f'{average_error} s', delta=delta_average_error, delta_color='inverse')
+    st.metric('Average Error', f'{average_error} ms', delta=delta_average_error, delta_color='inverse')
     st.metric('Total Error', f'{total_error} s', delta=delta_total_error, delta_color='inverse')
-    st.metric('Error Deviation', f'{error_deviation} s', delta=delta_error_deviation, delta_color='inverse')
+    st.metric('Error Deviation', f'{error_deviation} ms', delta=delta_error_deviation, delta_color='inverse')
 
 
 def render_error_plot():
