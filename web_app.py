@@ -26,6 +26,9 @@ def render_app():
 
     st.set_page_config(layout="wide")
     st.title('Rhythm Regression')
+    st.subheader('By Preston Dunton')
+    render_introduction()
+    render_how_to()
 
     if not os.path.exists(TEMP_DIRECTORY):
         os.mkdir(TEMP_DIRECTORY)
@@ -62,7 +65,54 @@ def render_app():
 
         if len(st.session_state['audios']) > 1:
             render_metrics_section()
+
         render_error_histogram()
+
+
+def render_introduction():
+
+    with st.expander('Show / Hide Introduction', expanded=True):
+
+        st.write("Among the different styles of drummers, marching drummers have a reputation for an "
+                "extremely high standard for precision and consistency.  For example, some marching "
+                "drummers care about timing differences even down to the resolution of milliseconds.  In order "
+                "to achieve these standards, some drummers log and monitor their practice by recording "
+                "maximum tempos achieved and by recording themselves playing.  Slow motion cameras in newer "
+                "smartphones used to watch stick movements are an example of a tool recently adopted by drummers."
+                " Methods like these can be effective, but are not automated, and are most often qualitative. "
+                "Qualitative methods are problematic because inexperienced players usually have poor judgment on "
+                "their own skills, and how to improve them. ")
+
+        st.write("This capstone project is my thesis for the Honors Program here at CSU.  One major theme in this "
+                "thesis is to bridge the gap between qualitative methods for evaluation and the high standards for "
+                "precision and consistency.  It is hypothesized that quantitative methods and AI tools can provide "
+                "players insight into their playing that goes beyond a player’s level of precise listening.  "
+                "Quantitative methods, along with computer science, can also provide drummers a way to automatically "
+                "log their practice sessions and monitor progress on music. The goals of this project are to explore"
+                " marching percussion audio data in depth, provide effective summarization of the data, and provide "
+                "users a way to receive automated feedback about their playing.")
+
+        st.write("If you're interested in this project, and would like learn how it works, I'll be giving a presentation"
+                " in the Computer Science Building CSB 130 on Friday, April 29th from 1-2pm.  You can also contact "
+                "me at preston.dunton@gmail.com or just text me if you have my number.")
+
+
+def render_how_to():
+    with st.expander('Show / Hide How To', expanded=True):
+        st.write("This web app allows you to upload MIDI files of music, and audio recordings of you playing it."
+                 "  Use the file uploaders on the sidebar to do so.  You can upload only one MIDI file at a time,"
+                 " but several audio files, so that you can compare different takes of you playing something.")
+
+        st.write("Record audio in a quiet room, and do not play any extra notes, or make any unintended sounds."
+                 "  The audio processing used in this project isn't perfect, so it helps if you're recording is "
+                "as clean as possible.  That being said, you do not need a fancy microphone.  I used my iPhone "
+                "11 microphone for this project.  If you notice any errors reported that are very large (>0.2s), you may "
+                "assume that the audio processing made a mistake.  State-of-the-art audio processing and live "
+                "recording aren't currently supported, as this project is in its (very) early stages of development.")
+
+        st.write("If you encounter a code error marked by a red box with code inside of it, please send me a "
+                 "screenshot, and the data you were using.  This will help me significantly.  Also try "
+                 "refreshing the page and reuploading your files.  Let me know if you have other problems.")
 
 
 def render_file_loaders():
@@ -192,6 +242,8 @@ def set_default_time_range():
 def render_dot_plots():
 
     time_range = st.slider('Time Range', value=st.session_state['default_time_range'])
+    st.write('Note: The black dots in the plots below are where the notes should occur according to MIDI.  '
+             'The lines are beats.')
 
     for i in range(len(st.session_state['transient_vectors'])):
 
