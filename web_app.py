@@ -25,7 +25,7 @@ METRIC_ROUND_PLACES = 2
 def render_app():
 
     st.set_page_config(layout="wide")
-    st.title('Rhythm Regression')
+    st.title('Rhythm Regression™')
     st.subheader('By Preston Dunton')
     render_introduction()
     render_how_to()
