@@ -12,6 +12,8 @@ tqdm = "*"
 scikit-learn = "*"
 plotly = "*"
 typing-extensions = "*"
+pandas = "*"
+numpy = "*"
 
 [dev-packages]
 
