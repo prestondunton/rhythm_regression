@@ -60,7 +60,8 @@ def render_app():
         with col2:
             render_error_plot()
 
-        render_summary_table()
+        if len(st.session_state['audios']) > 1:
+            render_metrics_section()
         render_error_histogram()
 
 
@@ -318,7 +319,7 @@ def render_error_plot():
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_summary_table():
+def render_metrics_section():
     st.header('Metrics')
 
     stats_df = st.session_state['summary_stats_df']
