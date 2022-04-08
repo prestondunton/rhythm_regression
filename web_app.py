@@ -10,6 +10,7 @@ import numpy as np
 import os
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 from rhythm_regression.unit_conversion import MILLISECONDS_PER_SECOND
@@ -26,6 +27,8 @@ def render_app():
     st.set_page_config(layout="wide")
     st.title('Rhythm Regression')
 
+    if not os.path.exists(TEMP_DIRECTORY):
+        os.mkdir(TEMP_DIRECTORY)
     audio_files = render_file_loaders()
 
     center_mode = st.sidebar.selectbox('Centering Mode', ['Error Mean 0', 'First Note'])
@@ -58,6 +61,7 @@ def render_app():
             render_error_plot()
 
         render_summary_table()
+        render_error_histogram()
 
 
 def render_file_loaders():
@@ -327,10 +331,21 @@ def render_summary_table():
         st.dataframe(stats_df)
     with col2:
         chart_column = st.selectbox('Pick a column to plot', stats_df.columns)
-        fig = px.bar(stats_df, x=stats_df.index, y=chart_column, color_discrete_sequence=['black'])
+        fig = px.bar(stats_df, x=stats_df.index, y=chart_column, color=stats_df.index, color_discrete_sequence=AUDIO_COLORS, labels={
+                     "index": "Sample"})
+        fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
-    
 
+
+def render_error_histogram():
+    st.header('Error Histogram')
+    points_per_audio = len(st.session_state['error_vectors'][0])
+    plot_df = pd.DataFrame({'Sample': np.tile(st.session_state['audio_names'], points_per_audio),
+                            'Errors (s)': np.concatenate(st.session_state['error_vectors'])
+                            })
+    fig = px.histogram(plot_df, x='Errors (s)', color='Sample', color_discrete_sequence=AUDIO_COLORS)
+    st.plotly_chart(fig)
+    
 
 if __name__ == '__main__':
     render_app()
