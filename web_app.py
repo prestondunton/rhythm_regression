@@ -10,13 +10,13 @@ import numpy as np
 import os
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
+import re
 import streamlit as st
 
 from rhythm_regression.unit_conversion import MILLISECONDS_PER_SECOND
 
 TEMP_DIRECTORY = '.temp'
-#AUDIO_COLORS = ['red', 'blue', 'green', 'orange', 'magenta', 'black']
+TOY_DATA_DIR = 'toy_data'
 AUDIO_COLORS = ['#D74E09', '#3F88C5', '#F2BB05', '#0B6E4F', '#63CCCA', 'black']
 MIDI_COLOR = 'black'
 METRIC_ROUND_PLACES = 2
@@ -24,23 +24,23 @@ METRIC_ROUND_PLACES = 2
 
 def render_app():
 
+    if 'num_audios' not in st.session_state:
+       st.session_state['num_audios'] = 0 
     st.set_page_config(layout="wide")
+    if not os.path.exists(TEMP_DIRECTORY):
+        os.mkdir(TEMP_DIRECTORY)
+
+    render_sidebar()
     st.title('Rhythm Regression™')
     st.subheader('By Preston Dunton')
     render_introduction()
     render_how_to()
 
-    if not os.path.exists(TEMP_DIRECTORY):
-        os.mkdir(TEMP_DIRECTORY)
-    audio_files = render_file_loaders()
-
-    center_mode = st.sidebar.selectbox('Centering Mode', ['Error Mean 0', 'First Note'])
-
-    if len(audio_files) > 0:
-        render_audio_playbacks(audio_files)
+    if st.session_state['num_audios'] > 0:
+        render_audio_playbacks(st.session_state['audio_files'])
 
     if 'midi' in st.session_state and 'audios' in st.session_state:
-        compute_transient_midi_vectors(center_mode)
+        compute_transient_midi_vectors()
         compute_error_vectors()
         compute_tempo_vectors()
         compute_summary_stats()
@@ -63,10 +63,22 @@ def render_app():
         with col2:
             render_error_plot()
 
-        if len(st.session_state['audios']) > 1:
+        if st.session_state['num_audios'] > 1:
             render_metrics_section()
 
         render_error_histogram()
+
+def render_sidebar():
+    
+    st.sidebar.header('Upload Files')
+    render_midi_loading()
+    render_audio_loading()
+
+    st.sidebar.markdown('#')
+    st.sidebar.markdown('#')
+    st.sidebar.markdown('#')
+    st.sidebar.markdown('#')
+    st.sidebar.selectbox('Centering Mode', ['Error Mean 0', 'First Note'], key='center_mode')
 
 
 def render_introduction():
@@ -115,35 +127,50 @@ def render_how_to():
                  "refreshing the page and reuploading your files.  Let me know if you have other problems.")
 
 
-def render_file_loaders():
-    st.sidebar.header('Upload Files')
-    midi_file = st.sidebar.file_uploader('Upload a MIDI File', type=['mid', 'midi'])
+def render_midi_loading():
+    
+    midi_option = st.sidebar.selectbox('Choose a MIDI File',
+                                        options=os.listdir(os.path.join(TOY_DATA_DIR, 'midi'))+['Upload your own'])
+    if midi_option == 'Upload your own':
+        midi_file = st.sidebar.file_uploader('Upload a MIDI File', type=['mid', 'midi'])
+        if midi_file is not None:
+            load_midi(midi_file)
+    else:
+        sheets_filename = re.sub('_\d{3}bpm.mid', '.pdf', midi_option)
+        with open(os.path.join(TOY_DATA_DIR, 'sheets', sheets_filename), 'rb') as sheets_file:    
+            st.sidebar.download_button('Download Sheet Music for this MIDI', 
+                                    data=sheets_file, file_name=sheets_filename, mime='application/pdf')
+
+        midi_path = os.path.join(TOY_DATA_DIR, 'midi', midi_option)
+        st.session_state['midi_name'] = midi_option
+        st.session_state['midi'] = mido.MidiFile(midi_path)
+
+
+def load_midi(midi_file):
+    
+    temp_midi_path = os.path.join(TEMP_DIRECTORY, midi_file.name)
+    with open(temp_midi_path, 'wb') as f: 
+        f.write(midi_file.getbuffer())         
+
+    st.session_state['midi_name'] = midi_file.name
+    st.session_state['midi'] = mido.MidiFile(temp_midi_path)
+
+    os.remove(temp_midi_path)
+
+
+def render_audio_loading():
+        
     audio_files = st.sidebar.file_uploader('Upload an Audio File', type=['mp3', 'm4a', 'wav'],
                                         accept_multiple_files=True)
     audio_files.sort(key= lambda file: file.name)
     
-    if midi_file is not None:
-        load_midi(midi_file)
-
     if len(audio_files) > 0:
+        st.session_state['audio_files'] = audio_files
         st.session_state['audio_names'] = [file.name for file in audio_files]
         st.session_state['audios'] = [load_audio(file) for file in audio_files]
         st.session_state['num_audios'] = len(audio_files)
 
-    return audio_files
-
         
-def load_midi(midi_file):
-    st.session_state['midi_name'] = midi_file.name
-    temp_midi_path = os.path.join(TEMP_DIRECTORY, midi_file.name)
-
-    with open(temp_midi_path, 'wb') as f: 
-        f.write(midi_file.getbuffer())         
-
-    st.session_state['midi'] = mido.MidiFile(temp_midi_path)
-    os.remove(temp_midi_path)
-
-
 @st.experimental_memo(show_spinner=False)
 def load_audio(file):
     with st.spinner(f'Loading {file.name}'):
@@ -164,7 +191,7 @@ def render_audio_playbacks(audio_files):
         st.audio(audio_files[i])
 
 
-def compute_transient_midi_vectors(center_mode):
+def compute_transient_midi_vectors():
     transient_vectors = [ap.rms_energy_transients(audio) for audio in st.session_state['audios']]
     midi_vector = mp.get_midi_vector(st.session_state['midi'])
     bpm = mp.get_bpm(st.session_state['midi'])
@@ -179,7 +206,7 @@ def compute_transient_midi_vectors(center_mode):
             transient_vectors[i] = vp.delete_transients(transient_vectors[i], midi_vector)
     
     for transient_vector in transient_vectors:
-        if center_mode == 'First Note':
+        if st.session_state['center_mode'] == 'First Note':
             transient_vector -= transient_vector.min()
         else:
             vp.center_transients_on_midi(transient_vector, midi_vector)
