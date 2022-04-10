@@ -114,7 +114,7 @@ def plot_rms_energy(signal, original_signal=True, frame_size=FRAME_SIZE, hop_len
     axs (matplotlib.axes.Axes): The axes that the signals were plotted on
     """
 
-    rmse = librosa.feature.rms(signal, frame_length=frame_size, hop_length=hop_length).flatten()
+    rmse = librosa.feature.rms(y=signal, frame_length=frame_size, hop_length=hop_length).flatten()
     frames = range(len(rmse))
     samples = librosa.frames_to_samples(frames, hop_length=hop_length)
     
