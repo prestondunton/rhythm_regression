@@ -24,11 +24,7 @@ METRIC_ROUND_PLACES = 2
 
 def render_app():
 
-    if 'num_audios' not in st.session_state:
-       st.session_state['num_audios'] = 0 
-    st.set_page_config(layout="wide")
-    if not os.path.exists(TEMP_DIRECTORY):
-        os.mkdir(TEMP_DIRECTORY)
+    init_app()
 
     render_sidebar()
     st.title('Rhythm Regression™')
@@ -67,6 +63,17 @@ def render_app():
             render_metrics_section()
 
         render_error_histogram()
+
+
+def init_app():
+    st.set_page_config(page_title='Rhythm Regression', page_icon='./images/favicons/favicon.ico', layout='wide')
+
+    if 'num_audios' not in st.session_state:
+       st.session_state['num_audios'] = 0 
+    
+    if not os.path.exists(TEMP_DIRECTORY):
+        os.mkdir(TEMP_DIRECTORY)
+
 
 def render_sidebar():
     
@@ -115,8 +122,9 @@ def render_introduction():
 def render_how_to():
     with st.expander('Show / Hide How To', expanded=True):
         st.write("This web app allows you to upload MIDI files of music, and audio recordings of you playing it."
-                 "  Use the file uploaders on the sidebar to do so.  You can upload only one MIDI file at a time,"
-                 " but several audio files, so that you can compare different takes of you playing something.")
+                 "In the sidebar, you can either upload your own MIDI and audio recordings or use some that I have"
+                 "provided.  You can only use one MIDI file at a time, but you can use several audio files.  "
+                 "This allows you to compare different takes of you playing something.")
 
         st.write("Record audio in a quiet room, and do not play any extra notes, or make any unintended sounds."
                  "  The audio processing used in this project isn't perfect, so it helps if you're recording is "
