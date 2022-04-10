@@ -39,7 +39,7 @@ def render_app():
     if st.session_state['num_audios'] > 0:
         render_audio_playbacks(st.session_state['audio_files'])
 
-    if 'midi' in st.session_state and 'audios' in st.session_state:
+    if 'midi' in st.session_state and st.session_state['num_audios'] > 0:
         compute_transient_midi_vectors()
         compute_error_vectors()
         compute_tempo_vectors()
@@ -72,13 +72,16 @@ def render_sidebar():
     
     st.sidebar.header('Upload Files')
     render_midi_loading()
+    st.sidebar.markdown('#')
+    st.sidebar.markdown('#')
     render_audio_loading()
 
     st.sidebar.markdown('#')
     st.sidebar.markdown('#')
-    st.sidebar.markdown('#')
-    st.sidebar.markdown('#')
-    st.sidebar.selectbox('Centering Mode', ['Error Mean 0', 'First Note'], key='center_mode')
+    st.sidebar.selectbox('Error Centering Mode', ['Equal Error', 'First Note'], key='center_mode')
+    st.sidebar.write('The error centering mode is used for calculating error.  "Equal Error" assumes '
+                     'that the player is equally likely to be ahead / behind, wheras "First Note" '
+                     'assumes the first note is always in time.')
 
 
 def render_introduction():
@@ -159,16 +162,35 @@ def load_midi(midi_file):
 
 
 def render_audio_loading():
+
+    audio_options = st.sidebar.multiselect('Choose (an) Audio File(s)',
+                                        options=sorted(os.listdir(os.path.join(TOY_DATA_DIR, 'audio'))+['Upload your own']))
+
+    audio_names = [option for option in audio_options if option != 'Upload your own']
+    audios = [load_toy_audio(audio_name) for audio_name in audio_names]
+    audio_files = [os.path.join(TOY_DATA_DIR, 'audio', audio_name) for audio_name in audio_names]
+
+    if 'Upload your own' in audio_options:
+        uploaded_audio_files = st.sidebar.file_uploader('Upload an Audio File', type=['mp3', 'm4a', 'wav'],
+                                            accept_multiple_files=True)
+        audio_names += [file.name for file in uploaded_audio_files]
+        audio_files += uploaded_audio_files
+        audios += [load_audio(file) for file in uploaded_audio_files]
         
-    audio_files = st.sidebar.file_uploader('Upload an Audio File', type=['mp3', 'm4a', 'wav'],
-                                        accept_multiple_files=True)
-    audio_files.sort(key= lambda file: file.name)
-    
-    if len(audio_files) > 0:
+    st.session_state['num_audios'] = len(audios)
+    #audio_files.sort(key= lambda file: file.name)
+    if len(audios) > 0:
         st.session_state['audio_files'] = audio_files
-        st.session_state['audio_names'] = [file.name for file in audio_files]
-        st.session_state['audios'] = [load_audio(file) for file in audio_files]
-        st.session_state['num_audios'] = len(audio_files)
+        st.session_state['audio_names'] = audio_names
+        st.session_state['audios'] = audios
+            
+
+@st.experimental_memo(show_spinner=False)
+def load_toy_audio(toy_audio_name):
+    with st.spinner(f'Loading {toy_audio_name}'):
+        audio_path = os.path.join(TOY_DATA_DIR, 'audio', toy_audio_name)
+        audio, sampling_rate = librosa.load(audio_path)
+        return audio
 
         
 @st.experimental_memo(show_spinner=False)
