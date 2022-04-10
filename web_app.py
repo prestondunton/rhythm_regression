@@ -130,7 +130,7 @@ def render_how_to():
 def render_midi_loading():
     
     midi_option = st.sidebar.selectbox('Choose a MIDI File',
-                                        options=os.listdir(os.path.join(TOY_DATA_DIR, 'midi'))+['Upload your own'])
+                                        options=sorted(os.listdir(os.path.join(TOY_DATA_DIR, 'midi'))+['Upload your own']))
     if midi_option == 'Upload your own':
         midi_file = st.sidebar.file_uploader('Upload a MIDI File', type=['mid', 'midi'])
         if midi_file is not None:
