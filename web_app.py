@@ -272,7 +272,7 @@ def compute_summary_stats():
 
     total_errors = [np.nansum(np.abs(error_vector)) for error_vector in st.session_state['error_vectors']]
 
-    error_deviations = [np.nanstd(error_vector)  * MILLISECONDS_PER_SECOND for error_vector in st.session_state['error_vectors']]
+    error_deviations = [np.nanstd(np.abs(error_vector))  * MILLISECONDS_PER_SECOND for error_vector in st.session_state['error_vectors']]
 
     average_tempos = [np.nanmean(tempo_vector) for tempo_vector in st.session_state['tempo_vectors']]
 
