@@ -116,15 +116,19 @@ def render_introduction():
 
         st.write("If you're interested in this project, and would like learn how it works, I'll be giving a presentation"
                 " in the Computer Science Building CSB 130 on Friday, April 29th from 1-2pm.  You can also contact "
-                "me at preston.dunton@gmail.com or just text me if you have my number.")
+                "me at preston.dunton@gmail.com (personal), pdunton@rams.colostate.edu (school) or just text me "
+                "if you have my phone number.")
 
 
 def render_how_to():
     with st.expander('Show / Hide How To', expanded=True):
-        st.write("This web app allows you to upload MIDI files of music, and audio recordings of you playing it."
-                 "In the sidebar, you can either upload your own MIDI and audio recordings or use some that I have"
-                 "provided.  You can only use one MIDI file at a time, but you can use several audio files.  "
-                 "This allows you to compare different takes of you playing something.")
+        st.write("This web app allows you to compare MIDI files of music, and audio recordings of a percussionist "
+                 "playing it.  In the sidebar, you can either upload your own MIDI and audio recordings or use "
+                 "some that I have provided.  You can only use one MIDI file at a time, but you can use several "
+                 "audio files.  This allows you to compare different takes of you playing something.  It's "
+                 "recommended that you check out the CSU Double / Triple Beat 120 bpm examples uploaded by me.  "
+                 "These audio recordings have consistent speed up / slow down issues that can be seen in the plots "
+                 "and heard in the audio playbacks.")
 
         st.write("Record audio in a quiet room, and do not play any extra notes, or make any unintended sounds."
                  "  The audio processing used in this project isn't perfect, so it helps if you're recording is "

@@ -44,7 +44,7 @@ def get_bpm(midi):
             microseconds_per_beat = message.tempo
             bpm = uspb_to_bpm(microseconds_per_beat)
 
-            if abs(bpm - round(bpm)) < MAX_ROUNDING_ERROR:
+            if abs(bpm - round(bpm)) <= MAX_ROUNDING_ERROR:
                 bpm = round(bpm)
 
             return bpm
