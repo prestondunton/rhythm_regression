@@ -17,9 +17,15 @@ from rhythm_regression.unit_conversion import MILLISECONDS_PER_SECOND
 
 TEMP_DIRECTORY = '.temp'
 TOY_DATA_DIR = 'toy_data'
+DEFAULT_AUDIO_FILES = ['CSU_Double_Triple_120bpm_Take_1.m4a', 
+                       'CSU_Double_Triple_120bpm_Take_2.m4a', 
+                       'CSU_Double_Triple_120bpm_Take_3.m4a', 
+                       'CSU_Double_Triple_120bpm_Take_4.m4a']
+DEFAULT_MIDI_FILE = os.listdir(os.path.join(TOY_DATA_DIR, 'midi')).index('CSU_Double_Triple_Beat_120bpm.mid')
 AUDIO_COLORS = ['#D74E09', '#3F88C5', '#F2BB05', '#0B6E4F', '#63CCCA', 'black']
 MIDI_COLOR = 'black'
 METRIC_ROUND_PLACES = 2
+
 
 
 def render_app():
@@ -145,7 +151,8 @@ def render_how_to():
 def render_midi_loading():
     
     midi_option = st.sidebar.selectbox('Choose a MIDI File',
-                                        options=sorted(os.listdir(os.path.join(TOY_DATA_DIR, 'midi'))+['Upload your own']))
+                                        options=sorted(os.listdir(os.path.join(TOY_DATA_DIR, 'midi'))+['Upload your own']),
+                                        index=DEFAULT_MIDI_FILE)
     if midi_option == 'Upload your own':
         midi_file = st.sidebar.file_uploader('Upload a MIDI File', type=['mid', 'midi'])
         if midi_file is not None:
@@ -176,7 +183,8 @@ def load_midi(midi_file):
 def render_audio_loading():
 
     audio_options = st.sidebar.multiselect('Choose (an) Audio File(s)',
-                                        options=sorted(os.listdir(os.path.join(TOY_DATA_DIR, 'audio'))+['Upload your own']))
+                                        options=sorted(os.listdir(os.path.join(TOY_DATA_DIR, 'audio'))+['Upload your own']),
+                                        default=DEFAULT_AUDIO_FILES)
 
     audio_names = [option for option in audio_options if option != 'Upload your own']
     audios = [load_toy_audio(audio_name) for audio_name in audio_names]
