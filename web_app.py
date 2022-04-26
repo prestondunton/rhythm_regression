@@ -21,7 +21,7 @@ DEFAULT_AUDIO_FILES = ['CSU_Double_Triple_120bpm_Take_1.m4a',
                        'CSU_Double_Triple_120bpm_Take_2.m4a', 
                        'CSU_Double_Triple_120bpm_Take_3.m4a', 
                        'CSU_Double_Triple_120bpm_Take_4.m4a']
-DEFAULT_MIDI_FILE = os.listdir(os.path.join(TOY_DATA_DIR, 'midi')).index('CSU_Double_Triple_Beat_120bpm.mid')
+DEFAULT_MIDI_FILE = 'CSU_Double_Triple_Beat_120bpm.mid'
 AUDIO_COLORS = ['#D74E09', '#3F88C5', '#F2BB05', '#0B6E4F', '#63CCCA', 'black']
 MIDI_COLOR = 'black'
 METRIC_ROUND_PLACES = 2
@@ -150,9 +150,9 @@ def render_how_to():
 
 def render_midi_loading():
     
-    midi_option = st.sidebar.selectbox('Choose a MIDI File',
-                                        options=sorted(os.listdir(os.path.join(TOY_DATA_DIR, 'midi'))+['Upload your own']),
-                                        index=DEFAULT_MIDI_FILE)
+    midi_list = sorted(os.listdir(os.path.join(TOY_DATA_DIR, 'midi'))+['Upload your own'])
+    midi_option = st.sidebar.selectbox('Choose a MIDI File',options=midi_list, index=midi_list.index(DEFAULT_MIDI_FILE))
+
     if midi_option == 'Upload your own':
         midi_file = st.sidebar.file_uploader('Upload a MIDI File', type=['mid', 'midi'])
         if midi_file is not None:
