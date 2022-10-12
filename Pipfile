@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 librosa = "*"
-matplotlib = "*"
+matplotlib = "3.6"
 streamlit = "*"
 mido = "*"
 tqdm = "*"
