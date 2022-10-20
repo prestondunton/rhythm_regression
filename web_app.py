@@ -234,7 +234,7 @@ def render_audio_playbacks(audio_files):
 
 
 def compute_transient_midi_vectors():
-    transient_vectors = [ap.rms_energy_transients(audio) for audio in st.session_state['audios']]
+    transient_vectors = [ap.transients(audio) for audio in st.session_state['audios']]
     midi_vector = mp.get_midi_vector(st.session_state['midi'])
     bpm = mp.get_bpm(st.session_state['midi'])
 

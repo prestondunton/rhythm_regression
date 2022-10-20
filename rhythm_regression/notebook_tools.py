@@ -1,5 +1,5 @@
 from rhythm_regression.unit_conversion import MILLISECONDS_PER_SECOND, SECONDS_PER_MINUTE
-from rhythm_regression.audio_processing import amplitude_envolope, rms_energy_transients
+from rhythm_regression.audio_processing import amplitude_envolope, transients
 
 from rhythm_regression.audio_processing import SAMPLING_RATE, FRAME_SIZE, HOP_LENGTH, AMPLITUDE_THRESHOLD
 
@@ -149,7 +149,7 @@ def plot_rmse_transients(signal, time_range=None, frame_size=FRAME_SIZE, hop_len
     axs = plot_rms_energy(signal, frame_size=frame_size, hop_length=hop_length, time_range=time_range, 
                             fmt='-', original_signal=False, axs=axs, title=title)
 
-    transients = rms_energy_transients(signal, frame_size=frame_size, hop_length=hop_length, 
+    transients = transients(signal, frame_size=frame_size, hop_length=hop_length, 
                                         amplitude_threshold=amplitude_threshold)
 
     if time_range is None:

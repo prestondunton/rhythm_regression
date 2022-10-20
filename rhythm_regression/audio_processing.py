@@ -30,6 +30,24 @@ def amplitude_envolope(signal, frame_size=FRAME_SIZE, hop_length=HOP_LENGTH):
     return samples, ae
 
 
+def transients(signal, **kwargs):
+    """
+    A wrapper function for the current version of transient detection.
+    When transient detection changes, this is the only method that should
+    have to change.  All calling methods of transient detection should
+    call this method.
+
+    Arguments
+    signal (list-like): The signal to get transients of
+    sampling_rate (int): The sampling rate to use for conversion to time
+
+    Returns
+    (np.ndarray): A numpy array of the times (in seconds) of transients
+    """
+    
+    return rms_energy_transients(signal, **kwargs)
+
+
 def rms_energy_transients(signal, sampling_rate=SAMPLING_RATE, frame_size=FRAME_SIZE, 
                             hop_length=HOP_LENGTH, amplitude_threshold=AMPLITUDE_THRESHOLD):
     """
@@ -44,7 +62,7 @@ def rms_energy_transients(signal, sampling_rate=SAMPLING_RATE, frame_size=FRAME_
     amplitude_theshold (int): The lowest rms_energy that counts as a transient
 
     Returns
-    rmse_transients (np.ndarray): A numpy array of the times (in seconds) of transients
+    rmse_transients (np.ndarray): A numpy array of the times (in seconds) of transients computed from RMSE
     """
 
     rmse = librosa.feature.rms(y=signal, frame_length=frame_size, hop_length=hop_length).flatten()
