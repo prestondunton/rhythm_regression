@@ -64,7 +64,8 @@ def delete_transients(t, m):
         right_index = min(q_best + i + 1, len(t)-1)
 
         neighbors = [left_index, middle_index, right_index]
-        neighbors.sort(key=lambda index: abs(m_star[i] - t[index]))
+        #neighbors.sort(key=lambda index: abs(m_star[i] - t[index]))
+        neighbors.sort(key=lambda index: I_heuristic(m_star, t, i, index))
         for j in range(len(neighbors)):
             if neighbors[j] not in claimed_indices:
                 nearest_transient = neighbors[j]
@@ -74,6 +75,24 @@ def delete_transients(t, m):
         t_star[i] = t[nearest_transient]
 
     return np.array(t_star)
+
+
+def I_heuristic(m, t, mi, ti):
+    if mi != 0 and ti != 0:
+        left_delta_m = m[mi] - m[mi - 1]
+        left_delta_t = t[ti] - t[ti - 1]
+    else:
+        left_delta_m = 0
+        left_delta_t = 0
+    
+    if mi < len(m) - 1 and ti < len(t) - 1:
+        right_delta_m = m[mi + 1] - m[mi]
+        right_delta_t = t[ti + 1] - t[ti]
+    else:
+        right_delta_m = 0
+        right_delta_t = 0
+        
+    return abs(m[mi] - t[ti]) + abs(left_delta_m - left_delta_t) + abs(right_delta_m - right_delta_t)
 
 
 def add_nan_transients(t, m):
