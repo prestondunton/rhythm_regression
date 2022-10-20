@@ -85,7 +85,7 @@ def one_a(pitches):
     pitches = _validate_pitches(pitches, 2)
     
     return BeamedGroup([
-        Note(pitches[0], Duration(EIGHT, num_dots=1)),
+        Note(pitches[0], Duration(EIGHTH, num_dots=1)),
         Note(pitches[1], SIXTEENTH_NOTE_DURATION)
     ])
 
