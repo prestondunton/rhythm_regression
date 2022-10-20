@@ -238,6 +238,7 @@ def compute_transient_midi_vectors():
     midi_vector = mp.get_midi_vector(st.session_state['midi'])
     bpm = mp.get_bpm(st.session_state['midi'])
 
+    print(f'{st.session_state["midi_name"]} has {len(midi_vector)} notes')
     for i in range(len(transient_vectors)):
             print(f'{st.session_state["audio_names"][i]} has {len(transient_vectors[i])} transients')
 
