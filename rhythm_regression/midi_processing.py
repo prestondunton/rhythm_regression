@@ -2,7 +2,7 @@ from rhythm_regression.unit_conversion import uspb_to_bpm
 
 import numpy as np
 
-MAX_ROUNDING_ERROR = 0.0013333377777939859  # See MIDI.ipynb for computation.  Assumes a max tempo of 400.
+MAX_BPM_ROUNDING_ERROR = 0.0013333377777939859  # See MIDI.ipynb for computation.  Assumes a max tempo of 400.
 
 
 def get_midi_vector(midi):
@@ -44,7 +44,7 @@ def get_bpm(midi):
             microseconds_per_beat = message.tempo
             bpm = uspb_to_bpm(microseconds_per_beat)
 
-            if abs(bpm - round(bpm)) <= MAX_ROUNDING_ERROR:
+            if abs(bpm - round(bpm)) <= MAX_BPM_ROUNDING_ERROR:
                 bpm = round(bpm)
 
             return bpm
