@@ -1,11 +1,12 @@
 from rhythm_regression.unit_conversion import MILLISECONDS_PER_SECOND, SECONDS_PER_MINUTE
-from rhythm_regression.audio_processing import amplitude_envolope, transients
+from rhythm_regression.audio_processing import amplitude_envolope, rms_energy_transients 
 
 from rhythm_regression.audio_processing import SAMPLING_RATE, FRAME_SIZE, HOP_LENGTH, AMPLITUDE_THRESHOLD
 
 import librosa
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import collections  as mc
 
 
 def plot_signal(signal, samples=None, sampling_rate=SAMPLING_RATE, time_range=None, units='s', title='', axs=None, **kwargs):
@@ -149,7 +150,7 @@ def plot_rmse_transients(signal, time_range=None, frame_size=FRAME_SIZE, hop_len
     axs = plot_rms_energy(signal, frame_size=frame_size, hop_length=hop_length, time_range=time_range, 
                             fmt='-', original_signal=False, axs=axs, title=title)
 
-    transients = transients(signal, frame_size=frame_size, hop_length=hop_length, 
+    transients = rms_energy_transients(signal, frame_size=frame_size, hop_length=hop_length, 
                                         amplitude_threshold=amplitude_threshold)
 
     if time_range is None:
@@ -161,7 +162,7 @@ def plot_rmse_transients(signal, time_range=None, frame_size=FRAME_SIZE, hop_len
     return axs
 
 
-def plot_midi_vector(x, bpm, time_range=None, draw_beats=True, x_label=None, y_level=0.5, 
+def plot_midi_vector(x, bpm=None, time_range=None, draw_beats=True, x_label=None, y_level=0.5, 
                     subdivisions_per_beat=1, units='beats', axs=None, figsize=(12.8, 1), title='', **kwargs):
     """
     Plots the MIDI vector as a series of points along a time axis.
@@ -194,18 +195,14 @@ def plot_midi_vector(x, bpm, time_range=None, draw_beats=True, x_label=None, y_l
     if y_level < 0 or y_level > 1:
         raise ValueError('y_level must be in the range [0,1]')
 
-    seconds_per_beat = SECONDS_PER_MINUTE / bpm
     if units == 's':
-        beat_lines = np.arange(0, np.nanmax(x), seconds_per_beat)
-        subdivision_lines = np.arange(0, np.nanmax(x), seconds_per_beat / subdivisions_per_beat)
+        pass
     elif units == 'ms':
         x = x * MILLISECONDS_PER_SECOND
-        beat_lines = np.arange(0, max(x), seconds_per_beat) * MILLISECONDS_PER_SECOND
-        subdivision_lines = np.arange(0, max(x), seconds_per_beat / subdivisions_per_beat) * MILLISECONDS_PER_SECOND
     elif units == 'beats':
+        if bpm is None:
+            raise ValueError(f'In order to use units = \'beats\', you must specify a bpm that is not None.  Got: {bpm}')
         x = x * bpm / SECONDS_PER_MINUTE
-        beat_lines = np.arange(0, max(x) * bpm / SECONDS_PER_MINUTE)
-        subdivision_lines = np.arange(0, max(x) * bpm / SECONDS_PER_MINUTE, 1 / subdivisions_per_beat)
     else:
         raise ValueError(f'{units} is not a valid unit.  Use one of [\'s\', \'ms\', \'beats\'].')
 
@@ -220,23 +217,41 @@ def plot_midi_vector(x, bpm, time_range=None, draw_beats=True, x_label=None, y_l
     plt.title(title, fontsize=18)
 
     if draw_beats:
-        axs = draw_beat_lines(axs, beat_lines, subdivision_lines, time_range)
+        if bpm is None:
+            raise ValueError(f'In order to use draw_beats = True, you must specify a bpm that is not None.  Got: {bpm}')
+        axs = draw_beat_lines(axs, bpm, np.nanmax(x), subdivisions_per_beat, units, time_range)
     
     return axs
 
-def draw_beat_lines(axs, beat_lines, subdivision_lines, time_range):
+def draw_beat_lines(axs, bpm, max_x, subdivisions_per_beat, units, time_range):
     """
     Draws the vertical lines of beats and their subdivisions on the provided axes.
 
     Arguments
     axs (matplotlib.axes.Axes): Axes to plot the lines on
-    beat_lines (list-like): The x coordinates of the beat lines
-    subdivision_lines (list-like): The x coordinates of the subdivision lines
+    bpm (float): The tempo of the MIDI used for ploting beats, subdivisions, and x ticks.
+    max_x (float): The maximum timestamp to plot beat lines in between
+    subdivision_per_beat (float): The number of subdivisions per beat to plot if draw_beats is True.
+    units (['s', 'ms', 'beats']): The units to plot on the x axis and to interpret time_range with.
     time_range (tuple of length 2): A tuple specifying start and end times to plot in the signal.
-
+    
     Returns
     axs (matplotlib.axes.Axes): The axes that the lines were drawn on
     """
+    
+    seconds_per_beat = SECONDS_PER_MINUTE / bpm
+    if units == 's':
+        beat_lines = np.arange(0, max_x, seconds_per_beat)
+        subdivision_lines = np.arange(0, max_x, seconds_per_beat / subdivisions_per_beat)
+    elif units == 'ms':
+        beat_lines = np.arange(0, max_x, seconds_per_beat) * MILLISECONDS_PER_SECOND
+        subdivision_lines = np.arange(0, max_x, seconds_per_beat / subdivisions_per_beat) * MILLISECONDS_PER_SECOND
+    elif units == 'beats':
+        beat_lines = np.arange(0, max_x * bpm / SECONDS_PER_MINUTE)
+        subdivision_lines = np.arange(0, max_x * bpm / SECONDS_PER_MINUTE, 1 / subdivisions_per_beat)
+    else:
+        raise ValueError(f'{units} is not a valid unit.  Use one of [\'s\', \'ms\', \'beats\'].')
+
 
     for line in beat_lines:
         if time_range[0] <= line <= time_range[1]:
@@ -247,3 +262,53 @@ def draw_beat_lines(axs, beat_lines, subdivision_lines, time_range):
             axs.axvline(line, color='black', lw=0.5)
 
     return axs
+
+
+
+def plot_matching(m, t, matching=None, time_range=None, my=0.8, ty=0.2, **kwargs):
+    """
+    Plots a matching between a MIDI vector and a transient vector
+
+    Arguments
+    m (np.ndarray): The midi vector
+    t (np.ndarray): The transient vector
+    matching (list of tuple of length 2): A list of matched indices into m and t.  E.g. [(0,0), ... (mi, ti)]
+    time_range (tuple of length 2): A tuple specifying start and end times to plot in the signal.
+    my (float in [0,1]): Height to plot the midi dots 
+    ty (float in [0,1]): Height to plot the transient dots 
+    """
+
+    axs = plot_midi_vector(m, time_range=time_range, units='s', figsize=(20,1), y_level=my, draw_beats=False, color='C0')
+    axs = plot_midi_vector(t, time_range=time_range, units='s', figsize=(20,1), y_level=ty, draw_beats=False, color='red', axs=axs, **kwargs)
+
+    if matching is None:
+        return
+
+    lines = []
+    for mi, ti in matching:
+        if mi is not None and ti is not None:
+
+            in_time_range = True if time_range is None else (time_range[0] <= m[mi]) and (m[mi] <= time_range[1]) and (time_range[0] <= t[ti]) and (t[ti] <= time_range[1])
+            if in_time_range:
+                #dy = ty - my + 0.1
+                #dx = t[ti] - m[mi]
+                #axs.arrow(m[mi], my, dx, dy, width=0.005, head_width=0.05, length_includes_head=True, color='k') 
+                lines.append([(m[mi], my - 0.06), (t[ti], ty + 0.06)])
+
+        elif mi is None and ti is not None:
+
+            in_time_range = True if time_range is None else (time_range[0] <= t[ti]) and (t[ti] <= time_range[1])
+            if in_time_range:
+#                axs.plot(t[ti], [0.3], 'Xk', markersize=10)
+                 axs.plot(t[ti], [ty], 'ok')
+
+        elif mi is not None and ti is None:
+            in_time_range = True if time_range is None else (time_range[0] <= m[mi]) and (m[mi] <= time_range[1])
+            if in_time_range:
+                axs.plot(m[mi], my, 'ok', mfc='none', markersize=12)
+            
+        else:
+            raise ValueError(f'Matching cannot be None for both MIDI vector and transient vector. Got matching {matching}.')
+
+    lc = mc.LineCollection(lines, color='k', linewidths=2)
+    axs.add_collection(lc)
