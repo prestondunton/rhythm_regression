@@ -1,1 +1,1 @@
-__all__ = ['audio_processing', 'notebook_tools', 'unit_conversion']
+__all__ = ['audio_processing', 'midi_processing', 'misc', 'notebook_tools', 'unit_conversion', 'vector_processing']
