@@ -1,10 +1,17 @@
+import sys
+# Allows loading of rhythm_regression_module
+sys.path.append('..')
+
 import numpy as np
+import os
 import pandas as pd
 import pickle
 from sklearn.model_selection import ParameterGrid
 from tqdm import tqdm
 
+from rhythm_regression.vector_processing import validate_matching
 
+OUTPUT_DIR = '../data/matchings/'
 
 TEMPO = 120
 
@@ -48,8 +55,10 @@ RHYTHM_BANK_PMF = [
     0.05, #SEXTUPLET,
     0.05, #QUARTER_NOTE_TRIPLET,
 ]
+AVERAGE_RHYTHM = sum([rhythm*p for rhythm, p in zip(RHYTHM_BANK,RHYTHM_BANK_PMF)])
 
 MONOTONICITY_CRUCNH_FACTOR = 0.9
+MIN_INSERTION_TIMESTAMP = -1.5
 
 REPITITIONS_PER_CONFIG = 10
 
@@ -88,8 +97,11 @@ def insert_notes(t, insertion_rate):
     insertion_indices = np.argwhere(np.random.random(len(t)) < insertion_rate).flatten()
     insertion_indices += np.arange(len(insertion_indices))
     for i in insertion_indices:
-        insertion_interval = (max(0, i-1), i)
-        new_note = np.random.uniform(t[insertion_interval[0]], t[insertion_interval[1]])
+        if i != 0:
+            insertion_interval = (max(0, i-1), i)
+            new_note = np.random.uniform(t[insertion_interval[0]], t[insertion_interval[1]])
+        else:
+            new_note = np.random.uniform(MIN_INSERTION_TIMESTAMP, 0)
         t = np.insert(t, i, new_note)
 
     return t
@@ -148,8 +160,8 @@ def assert_monotonicly_increasing(a):
     assert(np.all(a[1:] >= a[:-1]))
 
 
-def generate_example(m_notes, deletion_rate, insertion_rate, space_augmentation_rate, space_reduction_rate):
-    m_diff = np.random.choice(RHYTHM_BANK, p=RHYTHM_BANK_PMF, size=m_notes-1)
+def generate_example(id, len_m, deletion_rate, insertion_rate, space_augmentation_rate, space_reduction_rate):
+    m_diff = np.random.choice(RHYTHM_BANK, p=RHYTHM_BANK_PMF, size=len_m-1)
     m = np.cumsum(m_diff)
     m = np.insert(m, 0, 0)
 
@@ -162,6 +174,7 @@ def generate_example(m_notes, deletion_rate, insertion_rate, space_augmentation_
     assert_monotonicly_increasing(t)
 
     matchings = generate_true_matching(m, t)
+    validate_matching(m, t, matchings)
 
     t = augment_space(t, space_augmentation_rate)
     assert_monotonicly_increasing(t)
@@ -172,7 +185,12 @@ def generate_example(m_notes, deletion_rate, insertion_rate, space_augmentation_
     t = add_noise(t, SIXTEENTH_NOTE / 2)
     assert_monotonicly_increasing(t)
 
-    return m, t, matchings
+    return {
+            'id': id,
+            'm': m, 
+            't': t, 
+            'matchings': matchings,
+            }
 
 
 def main():
@@ -180,33 +198,46 @@ def main():
     np.random.seed(RANDOM_SEED)
 
     param_options = {
-        'm_notes':                  [50, 100, 200, 300],
+        'len_m':                  [50, 100, 200, 300],
         'deletion_rate':            [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.2, 0.3, 0.5],
         'insertion_rate':           [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.2, 0.3, 0.5],
         'space_augmentation_rate':  [0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.01, 0.02, 0.03, 0.04, 0.05],
         'space_reduction_rate':     [0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.01, 0.02, 0.03, 0.04, 0.05],
         'observation_num': list(range(REPITITIONS_PER_CONFIG)),
         }
+
+    """
+    param_options = {
+        'len_m':                  [50],
+        'deletion_rate':            [0, 0.01],
+        'insertion_rate':           [0, 0.01],
+        'space_augmentation_rate':  [0, 0.001],
+        'space_reduction_rate':     [0, 0.001],
+        'observation_num': list(range(REPITITIONS_PER_CONFIG)),
+        }
+    """
+
     grid = ParameterGrid(param_options)
 
-    print(len(grid))
     example_set = [None] * len(grid)
 
     for i in tqdm(range(len(grid))):
         params = grid[i]
         example_set[i] = generate_example(
-            params['m_notes'], 
+            i,
+            params['len_m'], 
             params['deletion_rate'], 
             params['insertion_rate'], 
             params['space_augmentation_rate'], 
             params['space_reduction_rate'])
 
-    with open( "example_set.pickle", "wb" ) as f:
+    with open(os.path.join(OUTPUT_DIR, 'example_set.pickle'), 'wb' ) as f:
         pickle.dump(example_set, f)
 
 
     parameter_table = pd.DataFrame(grid)
-    parameter_table.to_csv('./generated_data_params.csv')
+    parameter_table.drop('observation_num', axis=1, inplace=True) 
+    parameter_table.to_csv(os.path.join(OUTPUT_DIR, 'generated_data_params.csv'))
 
 
 

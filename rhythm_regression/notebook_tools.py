@@ -4,6 +4,7 @@ from rhythm_regression.audio_processing import amplitude_envolope, rms_energy_tr
 from rhythm_regression.audio_processing import SAMPLING_RATE, FRAME_SIZE, HOP_LENGTH, AMPLITUDE_THRESHOLD
 
 import librosa
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import collections  as mc
@@ -312,3 +313,21 @@ def plot_matching(m, t, matching=None, time_range=None, my=0.8, ty=0.2, **kwargs
 
     lc = mc.LineCollection(lines, color='k', linewidths=2)
     axs.add_collection(lc)
+
+
+
+def plot_matching_in_rows(m, t, matchings, title=''):
+
+    max_seconds = max(max(m), max(t))
+    max_seconds = math.ceil(max_seconds / 10) * 10
+    min_seconds = min(min(m), min(t))
+
+    for start_seconds in range(min_seconds - 0.1, max_seconds, 10):
+        if start_seconds == 0:
+            plot_title = title
+            x_label = None
+        else:
+            plot_title = ''
+            x_label = ''
+
+        plot_matching(m, t, matchings, time_range=(start_seconds, start_seconds+10), title=plot_title, x_label=x_label)

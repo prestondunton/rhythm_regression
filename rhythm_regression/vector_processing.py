@@ -1,6 +1,10 @@
 import numpy as np
 
 
+def numpy_snap(arr, snap_resolution):
+    return (arr / snap_resolution).round() * snap_resolution
+
+
 def center_transients_on_midi(t, m):
     """
     Modifies the transient vector in place so that 
@@ -35,6 +39,75 @@ def get_tempo_vector(t, m, bpm):
 
     tempo_vector = (bpm * midi_note_durations) / transient_note_durations
     return tempo_vector
+
+
+def validate_matching(m, t, matching):
+    m_indexes = sorted([mi for (mi, ti) in matching if mi is not None])
+    t_indexes = sorted([ti for (mi, ti) in matching if ti is not None])
+
+    if m_indexes != list(range(len(m))):
+        raise RuntimeError(f'm indexes are not valid {m_indexes} for vectors and matchings \nm: {m} \nt: \n{t} matchings: {matching}')
+
+    if t_indexes != list(range(len(t))):
+        raise RuntimeError(f't indexes are not valid {t_indexes} for vectors and matchings \nm: {m} \nt: {t} \nmatchings: {matching}')
+
+
+
+def score_matching(pred_match, actual_match):
+    pred_match_set = set(pred_match)    
+    actual_match_set = set(actual_match)    
+
+    # return the jaccard index
+    return len(pred_match_set & actual_match_set) / len(pred_match_set | actual_match_set)
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def delete_transients(t, m):
