@@ -319,10 +319,10 @@ def plot_matching(m, t, matching=None, time_range=None, my=0.8, ty=0.2, **kwargs
 def plot_matching_in_rows(m, t, matchings, title=''):
 
     max_seconds = max(max(m), max(t))
-    max_seconds = math.ceil(max_seconds / 10) * 10
-    min_seconds = min(min(m), min(t))
+    max_seconds = int(math.ceil(max_seconds / 10) * 10)
+    min_seconds = int(min(min(m), min(t)))
 
-    for start_seconds in range(min_seconds - 0.1, max_seconds, 10):
+    for start_seconds in range(min_seconds - 1, max_seconds, 10):
         if start_seconds == 0:
             plot_title = title
             x_label = None

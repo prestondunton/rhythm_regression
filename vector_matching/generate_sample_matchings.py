@@ -2,68 +2,16 @@ import sys
 # Allows loading of rhythm_regression_module
 sys.path.append('..')
 
+import math
 import numpy as np
 import os
 import pandas as pd
 import pickle
-from sklearn.model_selection import ParameterGrid
+from sklearn.model_selection import ParameterGrid, train_test_split
 from tqdm import tqdm
 
 from rhythm_regression.vector_processing import validate_matching
-
-OUTPUT_DIR = '../data/matchings/'
-
-TEMPO = 120
-
-QUARTER_NOTE = 60 / TEMPO
-HALF_NOTE = QUARTER_NOTE * 2
-WHOLE_NOTE = QUARTER_NOTE * 4
-EIGHTH_NOTE = QUARTER_NOTE / 2
-SIXTEENTH_NOTE = QUARTER_NOTE / 4
-
-DOTTED_EIGHTH_NOTE = SIXTEENTH_NOTE * 3
-DOTTED_QUARTER_NOTE = EIGHTH_NOTE * 3
-DOTTED_HALF_NOTE = QUARTER_NOTE * 3
-
-TRIPLET = QUARTER_NOTE / 3
-SEXTUPLET = QUARTER_NOTE / 6
-QUARTER_NOTE_TRIPLET = TRIPLET * 2
-
-RHYTHM_BANK = [
-    QUARTER_NOTE,
-    HALF_NOTE,
-    WHOLE_NOTE,
-    EIGHTH_NOTE,
-    SIXTEENTH_NOTE, 
-    DOTTED_EIGHTH_NOTE,
-    DOTTED_QUARTER_NOTE,
-    DOTTED_HALF_NOTE,
-    TRIPLET,
-    SEXTUPLET,
-    QUARTER_NOTE_TRIPLET,
-]
-RHYTHM_BANK_PMF = [
-    0.1, #QUARTER_NOTE,
-    0.025, #HALF_NOTE,
-    0.025, #WHOLE_NOTE,
-    0.15, #EIGHTH_NOTE,
-    0.25, #SIXTEENTH_NOTE, 
-    0.1, #DOTTED_EIGHTH_NOTE,
-    0.1, #DOTTED_QUARTER_NOTE,
-    0.05, #DOTTED_HALF_NOTE,
-    0.1, #TRIPLET,
-    0.05, #SEXTUPLET,
-    0.05, #QUARTER_NOTE_TRIPLET,
-]
-AVERAGE_RHYTHM = sum([rhythm*p for rhythm, p in zip(RHYTHM_BANK,RHYTHM_BANK_PMF)])
-
-MONOTONICITY_CRUCNH_FACTOR = 0.9
-MIN_INSERTION_TIMESTAMP = -1.5
-
-REPITITIONS_PER_CONFIG = 10
-
-RANDOM_SEED = 7202001  # Release Date of Spirited Away
-
+from data_gen_constants import *
 
 def generate_true_matching(m, t):
     matching = []
@@ -185,44 +133,62 @@ def generate_example(id, len_m, deletion_rate, insertion_rate, space_augmentatio
     t = add_noise(t, SIXTEENTH_NOTE / 2)
     assert_monotonicly_increasing(t)
 
+    m_diff = np.diff(m)
+    t_diff = np.diff(t)
+    m_diff2 = np.diff(m_diff)
+    t_diff2 = np.diff(t_diff)
+
     return {
             'id': id,
             'm': m, 
             't': t, 
+            'm_diff': m_diff,
+            't_diff': t_diff,
+            'm_diff2': m_diff2,
+            't_diff2': t_diff2,
             'matchings': matchings,
             }
+
+
+def train_val_test_split(examples, parameter_table):
+    if len(examples) != len(parameter_table):
+        raise ValueError(f'Length of example set must be the same as the length of the parameter table.  Got lengths {len(examples)} {len(parameter_table)}')
+
+    train_examples, test_examples, train_params, test_params = train_test_split(examples, parameter_table, 
+                                                                                train_size=TRAIN_SPLIT + VAL_SPLIT, random_state=RANDOM_SEED, shuffle=False)
+    train_examples, val_examples, train_params, val_params = train_test_split(train_examples, train_params, 
+                                                                                train_size=TRAIN_SPLIT / (TRAIN_SPLIT + VAL_SPLIT), random_state=RANDOM_SEED, shuffle=False)
+
+    return train_examples, val_examples, test_examples, train_params, val_params, test_params
+
+
+def save_data(train_examples, val_examples, test_examples, train_params, val_params, test_params):
+
+    with open(os.path.join(DATA_DIR, TRAIN_EXAMPLES_FILENAME), 'wb') as f:
+        pickle.dump(train_examples, f)
+    with open(os.path.join(DATA_DIR, VAL_EXAMPLES_FILENAME), 'wb') as f:
+        pickle.dump(val_examples, f)
+    with open(os.path.join(DATA_DIR, TEST_EXAMPLES_FILENAME), 'wb') as f:
+        pickle.dump(test_examples, f)
+
+    train_params.to_csv(os.path.join(DATA_DIR, TRAIN_PARAMS_FILENAME))
+    val_params.to_csv(os.path.join(DATA_DIR, VAL_PARAMS_FILENAME))
+    test_params.to_csv(os.path.join(DATA_DIR, TEST_PARAMS_FILENAME))
 
 
 def main():
 
     np.random.seed(RANDOM_SEED)
 
-    param_options = {
-        'len_m':                  [50, 100, 200, 300],
-        'deletion_rate':            [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.2, 0.3, 0.5],
-        'insertion_rate':           [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.2, 0.3, 0.5],
-        'space_augmentation_rate':  [0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.01, 0.02, 0.03, 0.04, 0.05],
-        'space_reduction_rate':     [0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.01, 0.02, 0.03, 0.04, 0.05],
-        'observation_num': list(range(REPITITIONS_PER_CONFIG)),
-        }
+    population_grid = np.array(ParameterGrid(POPULATION_CONFIGS))
+    shuffle_permutation = np.random.permutation(len(population_grid))
+    shuffled_population_grid = population_grid[shuffle_permutation]
+    sample_grid = shuffled_population_grid[0:EXAMPLE_SAMPLE_SIZE]
 
-    """
-    param_options = {
-        'len_m':                  [50],
-        'deletion_rate':            [0, 0.01],
-        'insertion_rate':           [0, 0.01],
-        'space_augmentation_rate':  [0, 0.001],
-        'space_reduction_rate':     [0, 0.001],
-        'observation_num': list(range(REPITITIONS_PER_CONFIG)),
-        }
-    """
+    example_set = [None] * len(sample_grid)
 
-    grid = ParameterGrid(param_options)
-
-    example_set = [None] * len(grid)
-
-    for i in tqdm(range(len(grid))):
-        params = grid[i]
+    for i in tqdm(range(len(sample_grid))):
+        params = sample_grid[i]
         example_set[i] = generate_example(
             i,
             params['len_m'], 
@@ -231,15 +197,12 @@ def main():
             params['space_augmentation_rate'], 
             params['space_reduction_rate'])
 
-    with open(os.path.join(OUTPUT_DIR, 'example_set.pickle'), 'wb' ) as f:
-        pickle.dump(example_set, f)
-
-
-    parameter_table = pd.DataFrame(grid)
+    parameter_table = pd.DataFrame([dict for dict in sample_grid])
     parameter_table.drop('observation_num', axis=1, inplace=True) 
-    parameter_table.to_csv(os.path.join(OUTPUT_DIR, 'generated_data_params.csv'))
+    parameter_table.index.name = 'example_id'
 
+    save_data(*train_val_test_split(example_set, parameter_table))
 
-
+    
 if __name__ == '__main__':
     main()
