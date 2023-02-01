@@ -1,3 +1,6 @@
+import sys
+sys.path.append('..')
+
 import numpy as np
 import os
 import pandas as pd
@@ -5,6 +8,9 @@ import pickle
 from tqdm import tqdm
 
 from data_gen_constants import *
+import rhythm_regression.vector_processing as vp
+
+from pdb import set_trace as bp
 
 def total_num_blocks(len_m, len_t):
    len_shorter_list = int(min(len_m, len_t))
@@ -68,41 +74,43 @@ def true_is_block_match(matchings, m_start, m_end, t_start, t_end):
     return True
 
 
-def compute_block_statistics(example, m_start, m_end, t_start, t_end):
+def compute_block_features(m_block, t_block, m_start, t_start):
 
-    validate_block_slices(len(example['m']), len(example['t']), m_start, m_end, t_start, t_end)
-    
+    if len(m_block) != len(t_block):
+        raise ValueError(f'Blocks are of different lengths.  Got lengths {len(m_block)=} and {len(t_block)=}')
+
     stats = {}
 
-    m_block = example['m'][m_start : m_end]
-    t_block = example['t'][t_start : t_end]
-    m_diff_block = example['m_diff'][m_start : m_end - 1]
-    t_diff_block = example['t_diff'][t_start : t_end - 1]
-    m_diff2_block = example['m_diff2'][m_start : m_end - 2]
-    t_diff2_block = example['t_diff2'][t_start : t_end - 2]
+    m_diff_block = np.diff(m_block) 
+    t_diff_block = np.diff(t_block)
+    m_diff2_block = np.diff(m_diff_block) 
+    t_diff2_block = np.diff(t_diff_block)
 
-    block_length = m_end - m_start
+    stats['block_length'] = len(m_block)
 
     timestamp_residuals = np.abs(m_block - t_block)
-    stats['total_timestamp_residual'] = timestamp_residuals.sum()
-    stats['mean_timestamp_residual'] = stats['total_timestamp_residual'] / block_length
+    stats['sum_timestamp_residual'] = timestamp_residuals.sum()
+    stats['mean_timestamp_residual'] = timestamp_residuals.mean()
     stats['max_timestamp_residual'] = timestamp_residuals.max()
-    stats['min_timestamp_residual'] = timestamp_residuals.min()
-    stats['std_timestamp_residual'] = timestamp_residuals.std()
+    #stats['min_timestamp_residual'] = timestamp_residuals.min()
+    #stats['std_timestamp_residual'] = timestamp_residuals.std()
 
-    rhythm_residuals = np.abs(m_diff_block - t_diff_block) if block_length > 1 else None 
-    stats['total_rhythm_residual'] = rhythm_residuals.sum() if block_length > 1 else 0
-    stats['mean_rhythm_residual'] = stats['total_rhythm_residual'] / block_length if block_length > 1 else 0
-    stats['max_rhythm_residual'] = rhythm_residuals.max() if block_length > 1 else 0
-    stats['min_rhythm_residual'] = rhythm_residuals.min() if block_length > 1 else 0
-    stats['std_rhythm_residual'] = rhythm_residuals.std() if block_length > 1 else 0
+    rhythm_residuals = np.abs(m_diff_block - t_diff_block) if stats['block_length'] > 1 else None 
+    stats['sum_rhythm_residual'] = rhythm_residuals.sum() if stats['block_length'] > 1 else 0
+    stats['mean_rhythm_residual'] = rhythm_residuals.mean() if stats['block_length'] > 1 else 0
+    stats['max_rhythm_residual'] = rhythm_residuals.max() if stats['block_length'] > 1 else 0
+    #stats['min_rhythm_residual'] = rhythm_residuals.min() if stats['block_length'] > 1 else 0
+    #stats['std_rhythm_residual'] = rhythm_residuals.std() if stats['block_length'] > 1 else 0
 
-    accel_residuals = np.abs(m_diff2_block - t_diff2_block) if block_length > 2 else None
-    stats['total_accel_residual'] = np.sum(accel_residuals) if block_length > 2 else 0
-    stats['mean_accel_residual'] = stats['total_accel_residual'] / block_length if block_length > 2 else 0
-    stats['max_accel_residual'] = accel_residuals.max() if block_length > 2 else 0
-    stats['min_accel_residual'] = accel_residuals.min() if block_length > 2 else 0
-    stats['std_accel_residual'] = accel_residuals.std() if block_length > 2 else 0
+    accel_residuals = np.abs(m_diff2_block - t_diff2_block) if stats['block_length'] > 2 else None
+    stats['sum_accel_residual'] = accel_residuals.sum() if stats['block_length'] > 2 else 0
+    stats['mean_accel_residual'] = accel_residuals.mean() if stats['block_length'] > 2 else 0
+    stats['max_accel_residual'] = accel_residuals.max() if stats['block_length'] > 2 else 0
+    #stats['min_accel_residual'] = accel_residuals.min() if stats['block_length'] > 2 else 0
+    #stats['std_accel_residual'] = accel_residuals.std() if stats['block_length'] > 2 else 0
+
+    stats['index_distance'] = abs(m_start - t_start)
+    stats['distance_length_product'] = stats['index_distance'] * stats['block_length']
 
     return stats 
 
@@ -167,11 +175,16 @@ def generate_block_stats(examples):
 
     for example in tqdm(examples):
 
+        vp.center_midi_on_transients(example['m'], example['t'])
+        assert(abs(example['m'].mean() - example['t'].mean()) < 0.00001)
+        assert(example['m'].mean() > 0)
+
         blocks = sample_blocks(BLOCK_SAMPLE_SIZE, len(example['m']), len(example['t']), upsample_large_blocks=False)
         
         for m_start, m_end, t_start, t_end in blocks:
 
-                stats = compute_block_statistics(example, m_start, m_end, t_start, t_end)
+                validate_block_slices(len(example['m']), len(example['t']), m_start, m_end, t_start, t_end)
+                stats = compute_block_features(example['m'][m_start : m_end], example['t'][t_start : t_end], m_start, t_start)
 
                 new_row = {'example_id': example['id'],
                         'm_start': m_start, 
@@ -191,21 +204,8 @@ def generate_block_stats(examples):
 
                 rows.append(list(new_row.values()))
 
-    block_stats = pd.DataFrame(rows, columns=headers)
-
-    block_stats['block_length'] = block_stats['m_end'] - block_stats['m_start']
-    block_stats['index_distance'] = (block_stats['m_start'] - block_stats['t_start']).abs()
-    block_stats['relative_distance'] = block_stats['index_distance'] / block_stats['block_length']
-    block_stats['distance_length_product'] = block_stats['index_distance'] * block_stats['block_length']
-    #block_stats['m_start%'] = block_stats['m_start'] / block_stats['len_m']
-    #block_stats['t_start%'] = block_stats['t_start'] / block_stats['len_t']
-    #block_stats['m_end%'] = block_stats['m_end'] / block_stats['len_m']
-    #block_stats['t_end%'] = block_stats['t_end'] / block_stats['len_t']
-    #block_stats['block_length%m'] = block_stats['block_length'] / block_stats['len_m']
-    #block_stats['block_length%t'] = block_stats['block_length'] / block_stats['len_t']
-
-    return block_stats
-
+    return pd.DataFrame(rows, columns=headers)
+    
 
 def load_example_data():
 

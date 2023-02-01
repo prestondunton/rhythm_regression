@@ -133,6 +133,8 @@ def generate_example(id, len_m, deletion_rate, insertion_rate, space_augmentatio
     t = add_noise(t, SIXTEENTH_NOTE / 2)
     assert_monotonicly_increasing(t)
 
+    t += np.random.uniform(MIN_T_START, MAX_T_START, size=1)
+
     m_diff = np.diff(m)
     t_diff = np.diff(t)
     m_diff2 = np.diff(m_diff)

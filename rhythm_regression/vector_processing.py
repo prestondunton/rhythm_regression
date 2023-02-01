@@ -14,9 +14,23 @@ def center_transients_on_midi(t, m):
     t (np.ndarray): The transient vector
     m (np.ndarray): The midi vector
     """
-
+    raise DeprecationWarning('This is not a good way to center the two vectors together.  The midi vector should slide forward in time')
     error = m - t
     t += np.nanmean(error)
+
+def center_midi_on_transients(m, t):
+    """
+    Returns a copy of m so that 
+    m and t have the same mean
+
+    Arguments
+    t (np.ndarray): The transient vector
+    m (np.ndarray): The midi vector
+    """
+    new_m = m.copy()
+    new_m += (t.mean() - m.mean())
+    return new_m
+
 
 
 def get_tempo_vector(t, m, bpm):
@@ -42,14 +56,14 @@ def get_tempo_vector(t, m, bpm):
 
 
 def validate_matching(m, t, matching):
-    m_indexes = sorted([mi for (mi, ti) in matching if mi is not None])
-    t_indexes = sorted([ti for (mi, ti) in matching if ti is not None])
+    m_indexes = sorted([mi for (mi, _) in matching if mi is not None])
+    t_indexes = sorted([ti for (_, ti) in matching if ti is not None])
 
     if m_indexes != list(range(len(m))):
-        raise RuntimeError(f'm indexes are not valid {m_indexes} for vectors and matchings \nm: {m} \nt: \n{t} matchings: {matching}')
+        raise RuntimeError(f'm indexes are not valid {m_indexes} for vectors and matchings \n {len(m)=} \n {matching=}')
 
     if t_indexes != list(range(len(t))):
-        raise RuntimeError(f't indexes are not valid {t_indexes} for vectors and matchings \nm: {m} \nt: {t} \nmatchings: {matching}')
+        raise RuntimeError(f't indexes are not valid {t_indexes} for vectors and matchings \n {len(t)=} \n {matching=}')
 
 
 

@@ -25,8 +25,10 @@ DATA_DIR = '../data/matchings/'
 # #########################################################################################################
 # DATA QUANTITY
 
-EXAMPLE_SAMPLE_SIZE = 10000
-BLOCK_SAMPLE_SIZE = 500
+#EXAMPLE_SAMPLE_SIZE = 10000
+#BLOCK_SAMPLE_SIZE = 500
+EXAMPLE_SAMPLE_SIZE = 1000
+BLOCK_SAMPLE_SIZE = 50
 
 
 # #########################################################################################################
@@ -80,6 +82,8 @@ AVERAGE_RHYTHM = sum([rhythm*p for rhythm, p in zip(RHYTHM_BANK,RHYTHM_BANK_PMF)
 
 MONOTONICITY_CRUCNH_FACTOR = 0.9
 MIN_INSERTION_TIMESTAMP = -1.5
+MIN_T_START = 1
+MAX_T_START = 20
 
 REPITITIONS_PER_CONFIG = 10
 
