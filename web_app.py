@@ -89,12 +89,12 @@ def render_sidebar():
     st.sidebar.markdown('#')
     render_audio_loading()
 
-    st.sidebar.markdown('#')
-    st.sidebar.markdown('#')
-    st.sidebar.selectbox('Error Centering Mode', ['Equal Error', 'First Note'], key='center_mode')
-    st.sidebar.write('The error centering mode is used for calculating error.  "Equal Error" assumes '
-                     'that the player is equally likely to be ahead / behind, wheras "First Note" '
-                     'assumes the first note is always in time.')
+    # st.sidebar.markdown('#')
+    # st.sidebar.markdown('#')
+    # st.sidebar.selectbox('Error Centering Mode', ['Equal Error', 'First Note'], key='center_mode')
+    # st.sidebar.write('The error centering mode is used for calculating error.  "Equal Error" assumes '
+    #                  'that the player is equally likely to be ahead / behind, wheras "First Note" '
+    #                  'assumes the first note is always in time.')
 
 
 def render_introduction():
@@ -249,10 +249,10 @@ def compute_transient_midi_vectors():
             transient_vectors[i] = vp.delete_transients(transient_vectors[i], midi_vector)
     
     for transient_vector in transient_vectors:
-        if st.session_state['center_mode'] == 'First Note':
-            transient_vector -= transient_vector.min()
-        else:
-            vp.center_transients_on_midi(transient_vector, midi_vector)
+        # if st.session_state['center_mode'] == 'First Note':
+        transient_vector -= transient_vector.min()
+        # else:
+        #     vp.center_transients_on_midi(transient_vector, midi_vector)
 
     st.session_state['transient_vectors'] = transient_vectors
     st.session_state['midi_vector'] = midi_vector
